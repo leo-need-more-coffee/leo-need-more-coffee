@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """ЛЗ-86 видеотерминал: генерирует SVG для профиля GitHub.
 
-  python gen/build.py            # всё: header, карточки проектов, статистика
+  python gen/build.py            # всё: шапка, карточки проектов, статистика
 
 Данные тянет из публичного API GitHub и страницы contributions.
 GITHUB_TOKEN из окружения (если есть) поднимает лимит запросов.
 """
-import base64, datetime as dt, html, io, json, os, re, urllib.request
+import base64, datetime as dt, html, io, json, os, random, re, urllib.request
 from collections import Counter
 from pathlib import Path
 
 from fontTools import subset
+from fontTools.ttLib import TTFont
+from fontTools.varLib import instancer
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,9 +20,8 @@ FONTS = ROOT / "gen" / "fonts"
 OUT = ROOT / "assets"
 USER = "leo-need-more-coffee"
 
-# люминофор P3 · янтарь
-P = dict(fg="#ffb547", dim="#94591a", hot="#fff2d4", acc="#ff7b30", ink="#140b02")
-PLASTIC_HI, PLASTIC_LO, SILK, SILK_HI = "#2b2824", "#1b1917", "#857e72", "#d2c8b6"
+# люминофор P4 · белый
+P = dict(fg="#d9e6ff", dim="#5d6d8a", hot="#ffffff", acc="#8fd4ff", ink="#05080f", inkd="#34425c", tube="#101a2c")
 FS, CW, CH, BASE = 16, 9.6, 20, 15  # кегль, ширина и высота клетки, базовая линия
 
 PROJECTS = [
@@ -31,6 +32,14 @@ PROJECTS = [
     ("element-lazy-android", "Свой форк {h:Element X}: конфиг тем, видеокружки и стикеры в Matrix"),
     ("simple-orm", "Маленькая {h:ORM} поверх sqlite3 без лишней магии"),
 ]
+
+# наклейки: (колонка левого края, строка центра, текст, наклон в радианах, сид, масштаб)
+ZINE = {
+    "header": [(20, 16.75, "НУЖНО БОЛЬШЕ КОФЕ", -0.035, 7, 1), (62, 25.3, "ОТКРЫТЫЙ КОД", 0.04, 3, 1)],
+    "card-flipperzero-bomberduck": [(38, 3.6, "КРЯ!", 0.07, 11, .85)],
+    "card-stageflow": [(15, 4.1, "JSON, А НЕ КОД", -0.04, 12, .72)],
+    "stats": [(69, 10.7, "ЛЕНЬ НЕ ПОРОК", -0.05, 17, .9)],
+}
 
 
 # ---------------------------------------------------------------- данные
@@ -57,7 +66,6 @@ def fetch():
         if m.group(1) in days and n:
             days[m.group(1)][2] = int(n.group(1))
     cal = sorted((d, lvl, n) for d, lvl, n in days.values())
-    # серии
     best = cur = run = 0
     for _, _, n in cal:
         run = run + 1 if n else 0
@@ -75,17 +83,36 @@ def fetch():
 
 
 # ---------------------------------------------------------------- шрифты
-def font_face(file, family, text, weight="400"):
+def load_font(file, wght=None):
+    f = TTFont(FONTS / file)
+    if "fvar" in f:
+        f = instancer.instantiateVariableFont(f, {"wght": wght or 400})
+    return f
+
+
+def font_face(file, family, text, wght=None):
+    f = load_font(file, wght)
     o = subset.Options()
     o.flavor, o.layout_features, o.name_IDs, o.notdef_outline = "woff2", [], [], True
-    f = subset.load_font(str(FONTS / file), o)
     s = subset.Subsetter(o)
     s.populate(text=text + " ")
     s.subset(f)
     buf = io.BytesIO()
     subset.save_font(f, buf, o)
     b64 = base64.b64encode(buf.getvalue()).decode()
-    return f"@font-face{{font-family:'{family}';font-weight:{weight};src:url(data:font/woff2;base64,{b64}) format('woff2')}}"
+    return f"@font-face{{font-family:'{family}';src:url(data:font/woff2;base64,{b64}) format('woff2')}}"
+
+
+_metrics = {}
+
+
+def advance(file, wght, ch, size):
+    if (file, wght) not in _metrics:
+        f = load_font(file, wght)
+        _metrics[(file, wght)] = (f.getBestCmap(), f["hmtx"], f["head"].unitsPerEm)
+    cmap, hmtx, upm = _metrics[(file, wght)]
+    g = cmap.get(ord(ch))
+    return hmtx[g][0] / upm * size if g else size * .6
 
 
 _logo_cache = {}
@@ -118,7 +145,91 @@ def logo_bitmap(text, max_w, max_h):
 
 def mix(a, b, t):
     a, b = [int(a[i:i + 2], 16) for i in (1, 3, 5)], [int(b[i:i + 2], 16) for i in (1, 3, 5)]
-    return "#" + "".join(f"{round(x + (y - x) * t):02x}" for x, y in zip(a, b))
+    return "#" + "".join(f"{round(x + (y - x) * min(1, max(0, t))):02x}" for x, y in zip(a, b))
+
+
+# ---------------------------------------------------------------- наклейки (зин из вырезанных букв)
+ZFONTS = [("Oswald.ttf", 700), ("PlayfairDisplay.ttf", 900), ("RussoOne.ttf", None), ("YesevaOne.ttf", None),
+          ("OldStandard-Bold.ttf", None), ("Underdog.ttf", None), ("PressStart2P.ttf", None), ("Neucha.ttf", None),
+          ("PTSerif-BoldItalic.ttf", None), ("RubikMonoOne.ttf", None), ("Jura.ttf", 700)]
+ZPAL = [("#f2efe6", "#0b0b0b"), ("#f2efe6", "#e3241b"), ("#e3241b", "#f7f4ea"), ("#ff6a10", "#0b0b0b"),
+        ("#14c8ff", "#0b0b0b"), ("#8cff2e", "#0b0b0b"), ("#0b0b0b", "#f7f4ea"), ("#0b0b0b", "#ff6a10"), ("#1d3bff", "#f7f4ea")]
+
+
+def pts(poly):
+    return " ".join(f"{x:.1f},{y:.1f}" for x, y in poly)
+
+
+def sticker(scr, cx, cy, text, rot, seed, big, t0):
+    """Наклейка: каждая буква на своём обрывке бумаги, по краям скотч. cx, cy — левый край и центр, px."""
+    R = random.Random(seed * 7919 + 1).random
+    L = CH * 1.5 * big
+    items, x = [], 0.0
+    for ch in text:
+        if ch == " ":
+            x += L * .7
+            continue
+        fi = int(R() * len(ZFONTS))
+        file, wght = ZFONTS[fi]
+        size = L * (.78 + R() * .5) * (.62 if "Press" in file else 1)
+        mw = max(size * .35, advance(file, wght, ch, size))
+        pad = size * (.12 + R() * .14)
+        r = R()
+        style = "paper" if r < .42 else "dark" if r < .67 else "acc" if r < .82 else "bare"
+        w, h = mw + pad * 2, size * 1.08 + pad * 1.2
+        pc = ZPAL[int(R() * len(ZPAL))]
+        j = size * .12
+        poly = []
+        for (x0, y0, x1, y1, n) in ((-w / 2, -h / 2, w / 2, -h / 2, 3), (w / 2, -h / 2, w / 2, h / 2, 2),
+                                    (w / 2, h / 2, -w / 2, h / 2, 3), (-w / 2, h / 2, -w / 2, -h / 2, 2)):
+            for i in range(n):
+                t = i / n
+                poly.append((x0 + (x1 - x0) * t + (R() - .5) * j, y0 + (y1 - y0) * t + (R() - .5) * j))
+        dots = [(.12 + R() * .25, (R() - .5) * w * .85, (R() - .5) * h * .85, .6 + R() * 1.4, .6 + R() * 1.4) for _ in range(int(size * .7))]
+        items.append(dict(ch=ch, fi=fi, size=size, w=w, h=h, style=style, pc=pc, poly=poly, dots=dots, line=R() - .5,
+                          x=x + w / 2, y=(R() - .5) * L * .22, rot=(R() - .5) * .34, spin=1 if R() < .5 else -1))
+        scr.zchars.setdefault(fi, set()).add(ch)
+        x += w * (.86 + R() * .1)
+    H = L * 1.6
+    # не вылезать за правый край стекла (с запасом на скотч)
+    cx = max(16 + L, min(cx, scr.w - 16 - L * 1.3 - x))
+    order = list(range(len(items)))
+    random.Random(seed).shuffle(order)
+    out = []
+    for rank, i in enumerate(order):
+        it = items[i]
+        bg, fg = it["pc"]
+        g = []
+        if it["style"] != "bare":
+            g.append(f'<polygon points="{pts(it["poly"])}" transform="translate(2.2 3)" fill="#000" opacity=".75"/>')
+            g.append(f'<polygon points="{pts(it["poly"])}" fill="{bg}"/>')
+            dc = "#fff" if bg == "#0b0b0b" else "#000"
+            g += [f'<rect x="{dx:.1f}" y="{dy:.1f}" width="{dw:.1f}" height="{dh:.1f}" fill="{dc}" opacity="{al:.2f}"/>' for al, dx, dy, dw, dh in it["dots"]]
+            g.append(f'<rect x="{-it["w"] / 2:.1f}" y="{it["h"] * it["line"]:.1f}" width="{it["w"]:.1f}" height=".8" fill="{dc}" opacity=".18"/>')
+            fill, stroke = fg, ""
+        else:
+            fill = "#ff6a10" if bg == "#0b0b0b" else bg
+            stroke = f' stroke="#000" stroke-width="{it["size"] * .12:.1f}" paint-order="stroke" stroke-linejoin="round"'
+        g.append(f'<text font-family="Z{it["fi"]}" font-size="{it["size"]:.1f}" text-anchor="middle" dominant-baseline="central" '
+                 f'y="{it["size"] * .04:.1f}" fill="{fill}"{stroke}>{html.escape(it["ch"])}</text>')
+        out.append(f'<g transform="translate({it["x"]:.1f} {it["y"]:.1f}) rotate({it["rot"] * 57.2958:.1f})">'
+                   f'<g class="z" style="animation-delay:{t0 + rank * .055:.2f}s;--s:{it["spin"] * 25}deg">{"".join(g)}</g></g>')
+    # скотч на крайних буквах
+    t_end = t0 + (len(items) - 1) * .055 + .17
+    if items:
+        ends = [(items[0]["x"] - items[0]["w"] * .62, -H * .16, -1), (items[-1]["x"] + items[-1]["w"] * .62, -H * .12, 1)]
+        for k, (tx, ty, side) in enumerate(ends):
+            tw, th, a = L * (1.05 + R() * .3), L * (.36 + R() * .08), side * (.62 + R() * .35)
+            poly = [(-tw / 2, -th / 2), (tw / 2, -th / 2)]
+            poly += [(tw / 2 + R() * th * .12, -th / 2 + th * q / 6) for q in range(7)]
+            poly += [(-tw / 2, th / 2)]
+            poly += [(-tw / 2 - R() * th * .12, th / 2 - th * q / 6) for q in range(7)]
+            p = pts(poly)
+            out.append(f'<g transform="translate({tx:.1f} {ty:.1f}) rotate({a * 57.2958:.1f})"><g class="tp" style="animation-delay:{t_end + .06 + k * .14:.2f}s">'
+                       f'<polygon points="{p}" transform="translate(1.5 2)" fill="#000" opacity=".22"/>'
+                       f'<polygon points="{p}" fill="#e4dcc4" opacity=".42" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>'
+                       f'<rect x="{-tw / 2:.1f}" y="{-th / 2:.1f}" width="{tw:.1f}" height="{th * .22:.1f}" fill="#fff" opacity=".22"/></g></g>')
+    return f'<g transform="translate({cx:.1f} {cy:.1f}) rotate({rot * 57.2958:.2f})">{"".join(out)}</g>'
 
 
 # ---------------------------------------------------------------- разметка текста
@@ -155,8 +266,7 @@ def wrap(s, w, base="fg", hang=0):
         words.append(cur)
     lines, line = [], []
     for wd in words:
-        body = len(line)
-        if line and body + 1 + len(wd) > w:
+        if line and len(line) + 1 + len(wd) > w:
             lines.append(line)
             line = [(" ", base)] * hang
         if line and len(line) > hang:
@@ -179,38 +289,38 @@ def group(cells):
 # ---------------------------------------------------------------- холст
 CSS = """
 .t{font:%(fs)spx 'LZ',monospace;white-space:pre}
-.fg{fill:%(fg)s}.dim{fill:%(dim)s}.hot{fill:%(hot)s}.acc{fill:%(acc)s}.ink{fill:%(ink)s}.inkd{fill:#6b3d0c}
-.silk{font:700 13px 'LZS',sans-serif;letter-spacing:.34em;fill:%(silk_hi)s}
-.silk2{font:500 10px 'LZS',sans-serif;letter-spacing:.26em;fill:%(silk)s}
+.fg{fill:%(fg)s}.dim{fill:%(dim)s}.hot{fill:%(hot)s}.acc{fill:%(acc)s}.ink{fill:%(ink)s}.inkd{fill:%(inkd)s}
 .a{opacity:0;animation:on 1ms linear forwards}
 .boot{animation:off 1ms linear forwards}
 .cur{animation:blink 1.06s steps(1) infinite}
 .pow{transform-box:view-box;transform-origin:50%% 50%%;animation:pow .5s ease-out both}
 .ray{animation:ray 7s linear infinite}
 .fl{animation:fl 5s steps(1) infinite}
+.z{transform-box:fill-box;transform-origin:50%% 50%%;animation:slap .2s cubic-bezier(.2,.7,.3,1) both}
+.tp{transform-box:fill-box;transform-origin:0 50%%;animation:unroll .16s ease-out both}
 @keyframes on{to{opacity:1}}
 @keyframes off{to{opacity:0}}
 @keyframes blink{50%%{opacity:0}}
 @keyframes pow{0%%{transform:scale(1,.004);opacity:.2}55%%{transform:scale(1,.004);opacity:1}100%%{transform:scale(1,1)}}
 @keyframes ray{from{transform:translateY(-160px)}to{transform:translateY(%(h)spx)}}
 @keyframes fl{0%%,100%%{opacity:1}47%%{opacity:.93}49%%{opacity:1}83%%{opacity:.96}}
-@media (prefers-reduced-motion:reduce){.a{animation:none;opacity:1}.boot{display:none}.cur,.pow,.ray,.fl{animation:none}.ray{display:none}}
+@keyframes slap{0%%{opacity:0;transform:translateY(-16px) scale(1.9) rotate(var(--s))}30%%{opacity:1}72%%{transform:scale(.95)}100%%{opacity:1;transform:none}}
+@keyframes unroll{from{transform:scaleX(0)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.a{animation:none;opacity:1}.boot{display:none}.cur,.pow,.ray,.fl,.z,.tp{animation:none}.ray{display:none}}
 """
 
 
 class Screen:
-    """Экран ЭЛТ с сеткой клеток; ox/oy — левый верхний угол сетки в SVG."""
+    """Фуллскрин-экран ЭЛТ с сеткой клеток; pad — поле от края стекла до сетки."""
 
-    def __init__(self, w, h, ox, oy, cols, rows):
-        self.w, self.h, self.ox, self.oy, self.cols, self.rows = w, h, ox, oy, cols, rows
-        self.el, self.chars, self.silk_chars = [], set(), set()
+    def __init__(self, cols, rows, pad=20):
+        self.cols, self.rows = cols, rows
+        self.w, self.h = round(cols * CW + 2 * pad), round(rows * CH + 2 * pad)
+        self.ox = self.oy = pad
+        self.chars, self.zchars = set(), {}
 
     X = lambda s, c: s.ox + c * CW
     Y = lambda s, r: s.oy + r * CH
-
-    def add(self, e):
-        self.el.append(e)
-        return e
 
     def text(self, col, row, s, base="fg", center_w=None):
         segs = group([(c, cl) for t, cl in mk(s, base) for c in t]) if isinstance(s, str) else group(s)
@@ -239,15 +349,13 @@ class Screen:
         g.append(self.rect(x + 2, y, tw, 1, P["ink"]))
         g.append(self.text(x + 2, y, lead + "{h:" + t + "}"))
         for i, line in enumerate(body):
-            if line is None:
-                continue
-            g.append(self.text(x + 2, y + 1 + i, line))
+            if line is not None:
+                g.append(self.text(x + 2, y + 1 + i, line))
         return "\n".join(g)
 
     def bar(self, row, left, right=""):
         """Инверсная строка меню / статуса."""
-        g = [self.rect(0, row, self.cols, 1, P["fg"])]
-        g.append(self.text(1, row, left, "inkd"))
+        g = [self.rect(0, row, self.cols, 1, P["fg"]), self.text(1, row, left, "inkd")]
         if right:
             g.append(self.text(self.cols - 1 - len(plain(right)), row, right, "inkd"))
         return "\n".join(g)
@@ -258,7 +366,7 @@ class Screen:
         col += (w - gw) // 2 if center else 0
         out = []
         for y, line in enumerate(grid):
-            c = mix(P["hot"], P["fg"], y / max(1, gh - 1)) if y < gh * .6 else mix(P["fg"], P["acc"], (y - gh * .6) / max(1, gh * .4))
+            c = mix(P["hot"], P["fg"], y / (gh * .6)) if y < gh * .6 else mix(P["fg"], P["acc"], (y - gh * .6) / (gh * .4))
             x = 0
             while x < gw:
                 if line[x]:
@@ -273,41 +381,39 @@ class Screen:
         f = round(frac * cells)
         return [(c, cls) for c in "█" * f] + [(c, "dim") for c in "░" * (cells - f)]
 
-    def defs(self, sx, sy, sw, sh, r):
-        return f"""<defs>
-<clipPath id="scr"><rect x="{sx}" y="{sy}" width="{sw}" height="{sh}" rx="{r}"/></clipPath>
+    def stickers(self, key, t0):
+        return "".join(sticker(self, self.X(c), self.Y(r), txt, rot, seed, big, t0 + i * .9)
+                       for i, (c, r, txt, rot, seed, big) in enumerate(ZINE.get(key, [])))
+
+    def render(self, content, path, zine="", r=12):
+        w, h = self.w, self.h
+        style = CSS % dict(fs=FS, h=h, **P)
+        style += font_face("PTMono.ttf", "LZ", "".join(self.chars))
+        for fi, chs in self.zchars.items():
+            style += font_face(ZFONTS[fi][0], f"Z{fi}", "".join(chs), ZFONTS[fi][1])
+        svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">
+<style>{style}</style>
+<defs>
+<clipPath id="scr"><rect width="{w}" height="{h}" rx="{r}"/></clipPath>
 <pattern id="scan" width="4" height="3" patternUnits="userSpaceOnUse"><rect y="2" width="4" height="1" fill="#000" opacity=".38"/></pattern>
 <pattern id="desk" width="{CW}" height="{CH / 2}" patternUnits="userSpaceOnUse"><rect width="1.6" height="1.6" fill="{P['dim']}" opacity=".45"/></pattern>
 <radialGradient id="vig" cx="50%" cy="50%" r="72%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".72"/></radialGradient>
-<radialGradient id="tube" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#2a1806"/><stop offset="100%" stop-color="{P['ink']}"/></radialGradient>
-<linearGradient id="rayg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{P['fg']}" stop-opacity="0"/><stop offset=".5" stop-color="{P['fg']}" stop-opacity=".06"/><stop offset="1" stop-color="{P['fg']}" stop-opacity="0"/></linearGradient>
-<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".07"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/></linearGradient>
-<linearGradient id="plastic" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{PLASTIC_HI}"/><stop offset="1" stop-color="{PLASTIC_LO}"/></linearGradient>
+<radialGradient id="tube" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="{P['tube']}"/><stop offset="100%" stop-color="{P['ink']}"/></radialGradient>
+<linearGradient id="rayg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{P['fg']}" stop-opacity="0"/><stop offset=".5" stop-color="{P['fg']}" stop-opacity=".05"/><stop offset="1" stop-color="{P['fg']}" stop-opacity="0"/></linearGradient>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".06"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/></linearGradient>
 <filter id="glow" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-</defs>"""
-
-    def render(self, frame, screen_xywh, r, content, silk="", path=None):
-        sx, sy, sw, sh = screen_xywh
-        style = CSS % dict(fs=FS, h=sh, silk=SILK, silk_hi=SILK_HI, **P)
-        style += font_face("PTMono.ttf", "LZ", "".join(self.chars))
-        if self.silk_chars:
-            style += font_face("Jura.ttf", "LZS", "".join(self.silk_chars), "300 700")
-        svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{self.w}" height="{self.h}" viewBox="0 0 {self.w} {self.h}">
-<style>{style}</style>
-{self.defs(sx, sy, sw, sh, r)}
-{frame}
+</defs>
 <g clip-path="url(#scr)">
-<rect x="{sx}" y="{sy}" width="{sw}" height="{sh}" fill="url(#tube)"/>
+<rect width="{w}" height="{h}" fill="url(#tube)"/>
 <g class="fl"><g filter="url(#glow)">
 {content}
 </g></g>
-<rect class="ray" x="{sx}" y="{sy}" width="{sw}" height="160" fill="url(#rayg)"/>
-<rect x="{sx}" y="{sy}" width="{sw}" height="{sh}" fill="url(#scan)"/>
-<rect x="{sx}" y="{sy}" width="{sw}" height="{sh}" fill="url(#vig)"/>
-<rect x="{sx}" y="{sy}" width="{sw}" height="{sh}" fill="url(#glass)"/>
+{zine}
+<rect class="ray" width="{w}" height="160" fill="url(#rayg)"/>
+<rect width="{w}" height="{h}" fill="url(#scan)"/>
+<rect width="{w}" height="{h}" fill="url(#vig)"/>
+<rect width="{w}" height="{h}" fill="url(#glass)"/>
 </g>
-<rect x="{sx}" y="{sy}" width="{sw}" height="{sh}" rx="{r}" fill="none" stroke="#000" stroke-width="3"/>
-{silk}
 </svg>"""
         path.write_text(svg)
         print(f"{path.relative_to(ROOT)}  {len(svg) // 1024} КБ")
@@ -317,18 +423,10 @@ def anim(el, t, cls="a"):
     return f'<g class="{cls}" style="animation-delay:{t:.2f}s">{el}</g>'
 
 
-def bezel_frame(w, h, r=26):
-    return (f'<rect width="{w}" height="{h}" rx="{r}" fill="url(#plastic)"/>'
-            f'<rect x="1.5" y="1.5" width="{w - 3}" height="{h - 3}" rx="{r - 1}" fill="none" stroke="#fff" stroke-opacity=".06" stroke-width="1.5"/>')
-
-
 # ---------------------------------------------------------------- шапка
 def build_header(D):
     COLS, ROWS = 100, 28
-    BX, BY, BB, PAD = 30, 30, 78, 20
-    sw, sh = COLS * CW + 2 * PAD, ROWS * CH + 2 * PAD
-    W, H = int(sw + 2 * BX), int(sh + BY + BB)
-    s = Screen(W, H, BX + PAD, BY + PAD, COLS, ROWS)
+    s = Screen(COLS, ROWS)
     c = []
 
     # загрузка
@@ -354,7 +452,7 @@ def build_header(D):
     boot.append(anim(s.text(1, row, pre + "{d:[}" + " " * 18 + "{d:]}"), t))
     for k in range(18):
         t += .045
-        boot.append(anim(s.text(1 + len(pre) + 1 + k, row, "▰" if False else "█"), t))
+        boot.append(anim(s.text(1 + len(pre) + 1 + k, row, "█"), t))
     t += .15
     boot.append(anim(s.text(1 + len(pre) + 20, row, "{h: 100%}"), t))
     t += .35
@@ -365,16 +463,16 @@ def build_header(D):
     # рабочий стол
     T = t
     c.append(anim(s.rect(0, 1, COLS, ROWS - 2, "url(#desk)"), T))
-    c.append(s.bar(0, "{k:≡ ЛЗ-86}   {k:Ф}айл  {k:П}равка  {k:В}ид  {k:К}офе  {k:С}правка", "{k:lazy}@github  P3"))
+    c.append(s.bar(0, "{k:≡ ЛЗ-86}   {k:Ф}айл  {k:П}равка  {k:В}ид  {k:К}офе  {k:С}правка", "{k:lazy}@github  P4"))
     c.append(anim(s.bar(ROWS - 1, "{k:F1} Помощь  {k:F2} Проекты  {k:F3} Статистика  {k:F10} Выход",
-                        "ЛЗ-86 · P3 · 1986–2026"), T))
+                        "ЛЗ-86 · P4 · 1986–2026"), T))
 
     u = D["user"]
     langs = D["langs"]
     top = max(n for _, n in langs) if langs else 1
     status = "{h:открыт к работе}" if u.get("hireable") else "занят"
     wins = [
-        (2, 2, 60, 14, "LEO-NEED-MORE-COFFEE", True, None),
+        (2, 2, 60, 14, "LEO-NEED-MORE-COFFEE", True, []),
         (64, 2, 34, 14, "ПОЛЬЗОВАТЕЛЬ", False, [
             "{d:ник}      leo-need-more-coffee",
             "{d:имя}      {h:лень}",
@@ -401,48 +499,25 @@ def build_header(D):
          + [None, "{d:+ Kotlin · Swift · SQL · Bash}"]),
     ]
     for i, (x, y, w, h, title, active, body) in enumerate(wins):
-        if body is None:
-            body = []
         el = s.window(x, y, w, h, title, body, active)
         if active:
             el += s.logo(x + 2, y + 2, "ЛЕНЬ", w - 4, 7)
             el += s.text(x + 2, y + 10, "{h:пишу код, пока не кончится кофе}", center_w=w - 4)
             el += s.text(x + 2, y + 12, "{d:Python · C · LLM-пайплайны · Flipper Zero · Matrix}", center_w=w - 4)
         c.append(anim(el, T + .12 + i * .14))
-    # мигающий курсор после make coffee
     cx = 2 + 2 + len("lazy@lz86:~$ make coffee") + 1
     c.append(anim(f'<g class="cur">{s.rect(cx, 24, .9, 1, P["fg"])}</g>', T + .7))
 
     content = f'<g class="pow">{"".join(c)}</g>'
-
-    # нижняя губа корпуса
-    ly = BY + sh + BB / 2
-    silk = []
-    for txt in ("ЛЗ-86", "ВИДЕОТЕРМИНАЛ", "ПИТАНИЕ", "РАЗМАГН.", "P3", "ЗВУК"):
-        s.silk_chars.update(txt)
-    silk.append(f'<circle cx="{BX + 14}" cy="{ly}" r="4" fill="#8dff6a"/><circle cx="{BX + 14}" cy="{ly}" r="10" fill="#8dff6a" opacity=".18"/>')
-    silk.append(f'<text class="silk" x="{BX + 32}" y="{ly + 5}">ЛЗ-86</text>')
-    silk.append(f'<text class="silk2" x="{BX + 118}" y="{ly + 4}">ВИДЕОТЕРМИНАЛ</text>')
-    kx = W - BX
-    for label, lit in reversed([("ПИТАНИЕ", True), ("РАЗМАГН.", False), ("P3", True), ("ЗВУК", False)]):
-        kw = 26 + len(label) * 9.5
-        kx -= kw
-        silk.append(f'<rect x="{kx}" y="{ly - 14}" width="{kw}" height="28" rx="3" fill="url(#plastic)" stroke="#0a0908"/>'
-                    f'<rect x="{kx}" y="{ly + 12}" width="{kw}" height="4" rx="2" fill="#090807"/>'
-                    f'<circle cx="{kx + 11}" cy="{ly}" r="2.6" fill="{"#d9e6ff" if lit else "#2c2723"}"/>'
-                    f'<text class="silk2" style="font-weight:700;fill:{SILK_HI}" x="{kx + 20}" y="{ly + 4}">{label}</text>')
-        kx -= 8
-    s.render(bezel_frame(W, H), (BX, BY, sw, sh), 16, content, "".join(silk), OUT / "header.svg")
+    s.render(content, OUT / "header.svg", s.stickers("header", T + 1.0), r=14)
 
 
 # ---------------------------------------------------------------- карточки проектов
 def build_cards(D):
-    COLS, ROWS, BX, PAD = 48, 7, 12, 14
-    sw, sh = COLS * CW + 2 * PAD, ROWS * CH + 2 * PAD
-    W, H = int(sw + 2 * BX), int(sh + 2 * BX)
+    COLS, ROWS = 48, 7
     for name, desc in PROJECTS:
         r = D["by_name"].get(name, {})
-        s = Screen(W, H, BX + PAD, BX + PAD, COLS, ROWS)
+        s = Screen(COLS, ROWS, pad=14)
         body = wrap(desc, COLS - 4)[:3]
         while len(body) < 3:
             body.append(None)
@@ -453,34 +528,29 @@ def build_cards(D):
         body += [None, meta]
         el = s.window(0, 0, COLS, ROWS, name.upper(), body, active=True)
         el += s.text(COLS - 2 - len("[ ОТКРЫТЬ ]"), ROWS - 2, "{h:[ ОТКРЫТЬ ]}")
-        s.render(bezel_frame(W, H, 14), (BX, BX, sw, sh), 8, el, path=OUT / f"card-{name}.svg")
+        key = f"card-{name}"
+        s.render(el, OUT / f"{key}.svg", s.stickers(key, .25), r=10)
 
 
 # ---------------------------------------------------------------- статистика
 def build_stats(D):
-    COLS, ROWS, BX, PAD = 103, 14, 14, 20
-    sw, sh = COLS * CW + 2 * PAD, ROWS * CH + 2 * PAD
-    W, H = int(sw + 2 * BX), int(sh + 2 * BX)
-    s = Screen(W, H, BX + PAD, BX + PAD, COLS, ROWS)
+    COLS, ROWS = 100, 14
+    s = Screen(COLS, ROWS)
     c = []
     cal = D["cal"]
-    # сетка недель: столбец = неделя, строка = день недели (вс..сб, как у GitHub)
     first = dt.date.fromisoformat(cal[0][0])
     off = (first.weekday() + 1) % 7
     weeks = (len(cal) + off + 6) // 7
     GLY = {0: ("·", "dim"), 1: ("░", "fg"), 2: ("▒", "fg"), 3: ("▓", "fg"), 4: ("█", "hot")}
-    hx, hy = 2 + 5, 3
-    body = [None] * 10
-    win = s.window(0, 0, 66, 13, "АКТИВНОСТЬ · 52 НЕДЕЛИ", [], active=True)
-    c.append(win)
+    hx, hy = 7, 3
+    c.append(s.window(0, 0, 65, 13, "АКТИВНОСТЬ · 52 НЕДЕЛИ", [], active=True))
     for i, name in enumerate(["пн", "ср", "пт"]):
         c.append(s.text(2, hy + 1 + i * 2, "{d:" + name + "}"))
     months = "янв фев мар апр май июн июл авг сен окт ноя дек".split()
     last_m = None
     cols_el = [[] for _ in range(weeks)]
     for i, (d, lvl, n) in enumerate(cal):
-        k = i + off
-        wk, wd = divmod(k, 7)
+        wk, wd = divmod(i + off, 7)
         date = dt.date.fromisoformat(d)
         if wd == 0 and date.month != last_m and wk < weeks - 2:
             c.append(s.text(hx + wk, hy - 1, "{d:" + months[date.month - 1] + "}"))
@@ -504,10 +574,10 @@ def build_stats(D):
         ("на GitHub с", u["created_at"][:4]),
     ]
     kv = [None if r is None else f"{{d:{r[0]:<16}}}{{h:{r[1]}}}" for r in rows]
-    c.append(anim(s.window(68, 0, 35, 13, "СЧЁТЧИКИ", kv), .3))
+    c.append(anim(s.window(67, 0, 33, 13, "СЧЁТЧИКИ", kv), .3))
     now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     c.append(s.bar(ROWS - 1, f"{{k:F3}} Статистика   обновлено {now}", "github actions · раз в сутки"))
-    s.render(bezel_frame(W, H, 16), (BX, BX, sw, sh), 10, "".join(c), path=OUT / "stats.svg")
+    s.render("".join(c), OUT / "stats.svg", s.stickers("stats", 1.3))
 
 
 if __name__ == "__main__":
