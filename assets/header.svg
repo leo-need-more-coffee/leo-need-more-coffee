@@ -129,8 +129,8 @@
 <rect x="669.2" y="400.0" width="316.8" height="160.0" fill="none" stroke="#94591a" stroke-width="1.4"/>
 <rect x="683.6" y="390.0" width="163.2" height="20.0" fill="#140b02" />
 <text class="t" xml:space="preserve" x="683.6" y="405.0"><tspan class="hot"> ЯЗЫКИ · ПО РЕПО </tspan></text>
-<text class="t" xml:space="preserve" x="683.6" y="425.0"><tspan class="dim">Python     </tspan><tspan class="fg">█████████████</tspan><tspan class="hot"> 11</tspan></text>
-<text class="t" xml:space="preserve" x="683.6" y="445.0"><tspan class="dim">C          </tspan><tspan class="fg">████</tspan><tspan class="dim">░░░░░░░░░</tspan><tspan class="hot"> 3</tspan></text>
+<text class="t" xml:space="preserve" x="683.6" y="425.0"><tspan class="dim">Python     </tspan><tspan class="fg">█████████████</tspan><tspan class="hot"> 12</tspan></text>
+<text class="t" xml:space="preserve" x="683.6" y="445.0"><tspan class="dim">C          </tspan><tspan class="fg">███</tspan><tspan class="dim">░░░░░░░░░░</tspan><tspan class="hot"> 3</tspan></text>
 <text class="t" xml:space="preserve" x="683.6" y="465.0"><tspan class="dim">JavaScript </tspan><tspan class="fg">█</tspan><tspan class="dim">░░░░░░░░░░░░</tspan><tspan class="hot"> 1</tspan></text>
 <text class="t" xml:space="preserve" x="683.6" y="505.0"><tspan class="dim">+ Kotlin · Swift · SQL · Bash</tspan></text></g><g class="a" style="animation-delay:5.49s"><g class="cur"><rect x="328.4" y="530.0" width="8.6" height="20.0" fill="#ffb547" /></g></g></g>
 </g></g>
