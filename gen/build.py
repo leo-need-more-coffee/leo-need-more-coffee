@@ -28,30 +28,30 @@ ORGS = ["evadepw", "mireacrm"]
 # описания для карточек; карточки строятся по закреплённым (Pinned) репозиториям профиля.
 # ключ без "/" — карточка целой организации (так показывается закреплённый org/.github)
 DESC = {
-    "leo-need-more-coffee/stageflow": "LLM-пайплайны для SaaS: граф в {h:JSON}, стадии на Python. PyPI, доки, тесты",
-    "leo-need-more-coffee/stageflow-ui": "Редактор и {h:отладчик} StageFlow: рисуешь граф и гоняешь его на живом ядре",
-    "leo-need-more-coffee/stageflow-mcp": "StageFlow через {h:MCP}: агент сам пишет, проверяет и запускает пайплайны",
-    "evadepw/evade-player": "Видеоплеер на {h:React} и Web Component: HLS, звук, пропуск фрагментов. В npm",
-    "evadepw/evadeplayer-platform": "Видео-бэкенд на {h:Go}: загрузка, транскод в HLS на GPU, подписанные ссылки",
-    "mireacrm": "{h:CRM} на микросервисах: Python и Go, gRPC, RabbitMQ, NATS, Keycloak",
-    "leo-need-more-coffee/neuro-balance": "{h:Нейроэволюция} с нуля: своя сеть без фреймворков учится держать мяч на платформе",
-    "leo-need-more-coffee/flipperzero-bomberduck": "Бомбермен для {h:Flipper Zero}: утка, бомбы, взрывы на монохромном экране 128×64",
-    "leo-need-more-coffee/flipperzero-4inrow": "«Четыре в ряд» для {h:Flipper Zero}: классика на дельфине",
-    "leo-need-more-coffee/element-lazy-android": "Свой форк {h:Element X}: конфиг тем, видеокружки и стикеры в Matrix",
-    "leo-need-more-coffee/mireacrm": "Монорепо {h:Mirea CRM}: 8 сервисов на Python и Go за единым шлюзом",
+    "leo-need-more-coffee/stageflow": "Declarative {h:LLM pipelines} for SaaS: graph in JSON, stages in Python. PyPI, docs, tests",
+    "leo-need-more-coffee/stageflow-ui": "Visual {h:editor and debugger} for StageFlow: draw a graph, run it on the live core",
+    "leo-need-more-coffee/stageflow-mcp": "StageFlow over {h:MCP}: an agent writes, checks and runs pipelines itself",
+    "evadepw/evade-player": "Video player for {h:React} and Web Components: HLS, audio, fragment skip. On npm",
+    "evadepw/evadeplayer-platform": "Video backend in {h:Go}: upload, GPU transcoding to HLS, signed playback URLs",
+    "mireacrm": "Microservice {h:CRM} for service businesses: Python and Go, gRPC, RabbitMQ, NATS",
+    "leo-need-more-coffee/neuro-balance": "{h:Neuroevolution} from scratch: a hand-rolled net learns to balance a ball on a platform",
+    "leo-need-more-coffee/flipperzero-bomberduck": "Bomberman-style game for {h:Flipper Zero}: a duck, bombs and blasts on a 128×64 screen",
+    "leo-need-more-coffee/flipperzero-4inrow": "Four in a row for {h:Flipper Zero}: the classic, on a dolphin",
+    "leo-need-more-coffee/element-lazy-android": "My fork of {h:Element X}: theme config, video circles and stickers for Matrix",
+    "leo-need-more-coffee/mireacrm": "{h:Mirea CRM} monorepo: 8 Python and Go services behind one gateway",
 }
 FALLBACK_PINS = ["leo-need-more-coffee/stageflow", "mireacrm", "evadepw/evadeplayer-platform",
                  "leo-need-more-coffee/neuro-balance", "leo-need-more-coffee/stageflow-ui", "leo-need-more-coffee/flipperzero-bomberduck"]
 
 # наклейки: (колонка левого края, строка центра, текст, наклон в радианах, сид, масштаб)
 ZINE = {
-    "header": [(20, 16.75, "НУЖНО БОЛЬШЕ КОФЕ", -0.035, 7, 1), (62, 25.3, "ОТКРЫТЫЙ КОД", 0.04, 3, 1)],
-    "card-flipperzero-bomberduck": [(24, 3.7, "КРЯ!", 0.07, 11, .75)],
-    "card-stageflow": [(16, 3.9, "JSON, А НЕ КОД", -0.04, 12, .72)],
+    "header": [(20, 16.75, "NEED MORE COFFEE", -0.035, 7, 1), (62, 25.3, "OPEN SOURCE", 0.04, 3, 1)],
+    "card-flipperzero-bomberduck": [(24, 3.7, "QUACK!", 0.07, 11, .75)],
+    "card-stageflow": [(16, 3.9, "JSON, NOT CODE", -0.04, 12, .72)],
     "card-evadeplayer-platform": [(24, 3.9, "v1.0", 0.06, 5, .8)],
-    "card-mireacrm": [(21, 3.9, "17 РЕПО", -0.05, 9, .78)],
-    "card-neuro-balance": [(22, 3.9, "С НУЛЯ", 0.05, 4, .8)],
-    "stats": [(69, 10.7, "ЛЕНЬ НЕ ПОРОК", -0.05, 17, .9)],
+    "card-mireacrm": [(21, 3.9, "17 REPOS", -0.05, 9, .78)],
+    "card-neuro-balance": [(22, 3.9, "FROM SCRATCH", 0.05, 4, .8)],
+    "stats": [(10, 10.3, "LAZINESS DRIVES PROGRESS", -0.03, 17, .78)],
 }
 
 
@@ -500,13 +500,13 @@ def build_header(D):
     # загрузка
     boot, t = [], 0.55
     lines = [
-        ("{h:ЛЗ-86 ВИДЕОТЕРМИНАЛ}{d:   ПЗУ v2.6.1}", None),
-        ("{d:(с) lazy, 1986–2026}", None),
+        ("{h:LZ-86 VIDEO TERMINAL}{d:   ROM v2.6.1}", None),
+        ("{d:(c) lazy, 1986–2026}", None),
         ("", None),
-        ("ПРОВЕРКА ОЗУ ........ ", "640 КБ {h:ОК}"),
-        ("СТРОЧНАЯ РАЗВЁРТКА .. ", "15,625 кГц {h:ОК}"),
-        ("ПРОЦЕССОР ........... ", "К1810ВМ86 {h:ОК}"),
-        ("КОФЕВАРКА ........... ", "12 %  {a:МАЛО, НО СОЙДЁТ}"),
+        ("MEMORY TEST ......... ", "640 KB {h:OK}"),
+        ("H-SCAN .............. ", "15.625 kHz {h:OK}"),
+        ("CPU ................. ", "K1810VM86 {h:OK}"),
+        ("COFFEE MAKER ........ ", "12 %  {a:LOW, WILL DO}"),
         ("", None),
     ]
     for i, (a, b) in enumerate(lines):
@@ -516,7 +516,7 @@ def build_header(D):
             t += .22
         t += .2
     row = 2 + len(lines)
-    pre = "ЗАГРУЗКА profile.sys  "
+    pre = "LOADING profile.sys   "
     boot.append(anim(s.text(1, row, pre + "{d:[}" + " " * 18 + "{d:]}"), t))
     for k in range(18):
         t += .045
@@ -531,47 +531,48 @@ def build_header(D):
     # рабочий стол
     T = t
     c.append(anim(s.rect(0, 1, COLS, ROWS - 2, "url(#desk)"), T))
-    c.append(s.bar(0, "{k:≡ ЛЗ-86}   {k:Ф}айл  {k:П}равка  {k:В}ид  {k:К}офе  {k:С}правка", "{k:lazy}@github  P4"))
-    c.append(anim(s.bar(ROWS - 1, "{k:F1} Помощь  {k:F2} Проекты  {k:F3} Статистика  {k:F10} Выход",
-                        "ЛЗ-86 · P4 · 1986–2026"), T))
+    c.append(s.bar(0, "{k:≡ LZ-86}   {k:F}ile  {k:E}dit  {k:V}iew  {k:C}offee  {k:H}elp", "{k:lazy}@github  P4"))
+    c.append(anim(s.bar(ROWS - 1, "{k:F1} Help  {k:F2} Projects  {k:F3} Stats  {k:F10} Exit",
+                        "LZ-86 · P4 · 1986–2026"), T))
 
     u = D["user"]
     langs = D["langs"]
     top = max(n for _, n in langs) if langs else 1
-    status = "{h:открыт к работе}" if u.get("hireable") else "занят"
+    status = "{h:open to work}" if u.get("hireable") else "busy"
     wins = [
         (2, 2, 60, 14, "LEO-NEED-MORE-COFFEE", True, []),
-        (64, 2, 34, 14, "ПОЛЬЗОВАТЕЛЬ", False, [
-            "{d:ник}      leo-need-more-coffee",
-            "{d:имя}      {h:лень}",
-            "{d:статус}   " + status,
-            "{d:учёба}    РТУ МИРЭА",
-            f"{{d:репо}}     {u['public_repos']} · {{a:*}} {D['stars']} · {u['followers']} фолл.",
+        (64, 2, 34, 14, "USER", False, [
+            "{d:handle}   leo-need-more-coffee",
+            "{d:name}     {h:lazy}",
+            "{d:status}   " + status,
+            "{d:study}    RTU MIREA",
+            f"{{d:repos}}    {u['public_repos']} · {{a:*}} {D['stars']} stars",
+            f"{{d:followers}} {u['followers']}",
             None,
-            "{d:ДАТЧИКИ}",
-            [("кофе     ", "dim")] + s.meter(.12, 12, "acc") + [(" 12 %", "acc")],
-            [("лень     ", "dim")] + s.meter(1, 12, "hot") + [(" 100 %", "hot")],
-            [("код      ", "dim")] + s.meter(.65, 12) + [(" 65 %", "fg")],
+            "{d:SENSORS}",
+            [("coffee   ", "dim")] + s.meter(.12, 12, "acc") + [(" 12 %", "acc")],
+            [("laziness ", "dim")] + s.meter(1, 12, "hot") + [(" 100 %", "hot")],
+            [("code     ", "dim")] + s.meter(.65, 12) + [(" 65 %", "fg")],
         ]),
-        (2, 17, 60, 9, "СЕЙЧАС В РАБОТЕ", False, [
-            "{a:▪} {h:StageFlow}: LLM-пайплайны, редактор и MCP для агентов",
-            "{a:▪} {h:EvadePlayer}: видеоплеер в npm + HLS-бэкенд на Go",
-            "{a:▪} {h:@mireacrm}: CRM из 17 репо, gRPC, RabbitMQ, NATS",
-            "{a:▪} игры для {h:Flipper Zero} и свой Matrix-клиент",
+        (2, 17, 60, 9, "NOW WORKING ON", False, [
+            "{a:▪} {h:StageFlow}: LLM pipelines, an editor, MCP for agents",
+            "{a:▪} {h:EvadePlayer}: npm video player + HLS backend in Go",
+            "{a:▪} {h:@mireacrm}: a CRM in 17 repos, gRPC, RabbitMQ, NATS",
+            "{a:▪} {h:Flipper Zero} games and my own Matrix client",
             None,
             None,
             "{d:lazy@lz86:~$} make coffee",
         ]),
-        (64, 17, 34, 9, "ЯЗЫКИ · ПО РЕПО", False,
+        (64, 17, 34, 9, "LANGUAGES · BY REPO", False,
          [[(f"{n:<11}", "dim")] + s.meter(k / top, 13) + [(f" {k}", "hot")] for n, k in langs]
          + [None, "{d:+ Kotlin · Swift · SQL · Bash}"]),
     ]
     for i, (x, y, w, h, title, active, body) in enumerate(wins):
         el = s.window(x, y, w, h, title, body, active)
         if active:
-            el += s.logo(x + 2, y + 2, "ЛЕНЬ", w - 4, 7)
-            el += s.text(x + 2, y + 10, "{h:пишу код, пока не кончится кофе}", center_w=w - 4)
-            el += s.text(x + 2, y + 12, "{d:Python · Go · TypeScript · C · LLM · видео · Flipper}", center_w=w - 4)
+            el += s.logo(x + 2, y + 2, "LAZY", w - 4, 7)
+            el += s.text(x + 2, y + 10, "{h:writing code until the coffee runs out}", center_w=w - 4)
+            el += s.text(x + 2, y + 12, "{d:Python · Go · TypeScript · C · LLM · video · Flipper}", center_w=w - 4)
         c.append(anim(el, T + .12 + i * .14))
     cx = 2 + 2 + len("lazy@lz86:~$ make coffee") + 1
     c.append(anim(f'<g class="cur">{s.rect(cx, 24, .9, 1, P["fg"])}</g>', T + .7))
@@ -601,17 +602,17 @@ def build_cards(D):
         while len(body) < 3:
             body.append(None)
         lang = r.get("language") or "—"
-        meta = f"{{a:*}} {r.get('stargazers_count', 0)}   {{d:язык}} {lang}"
+        meta = f"{{a:*}} {r.get('stargazers_count', 0)}   {{d:lang}} {lang}"
         if r.get("org"):
-            meta = f"{{d:орга}} {r['n']} репо   {{d:языки}} {r['langs']}"
+            meta = f"{{d:org}} {r['n']} repos   {{d:langs}} {r['langs']}"
         if r.get("fork"):
-            meta += "   {d:форк}"
+            meta += "   {d:fork}"
         body += [None, meta]
         title = name.upper() if owner in (USER, name) else f"{owner}/{name}".upper()
         if r.get("org"):
             title = f"@{name}".upper()
         el = s.window(0, 0, COLS, ROWS, title, body, active=True)
-        btn = "[ ОРГА ]" if r.get("org") else "[ ОТКРЫТЬ ]"
+        btn = "[ ORG ]" if r.get("org") else "[ OPEN ]"
         el += s.text(COLS - 2 - len(btn), ROWS - 2, "{h:" + btn + "}")
         key = f"card-{name}"
         s.render(el, OUT / f"{key}.svg", s.stickers(key, .25), r=10)
@@ -624,7 +625,7 @@ def build_readme(cards):
     img = lambda f, svg: f'<a href="{link(f)}"><img src="assets/{svg}" width="49%" alt="{f}"></a>'
     rows = "\n".join("  " + " ".join(img(*c) for c in cards[i:i + 2]) for i in range(0, len(cards), 2))
     (ROOT / "README.md").write_text(f"""<p align="center">
-  <img src="assets/header.svg" width="100%" alt="ЛЗ-86 видеотерминал · лень · leo-need-more-coffee">
+  <img src="assets/header.svg" width="100%" alt="LZ-86 video terminal · lazy · leo-need-more-coffee">
 </p>
 
 <p align="center">
@@ -632,10 +633,10 @@ def build_readme(cards):
 </p>
 
 <p align="center">
-  <img src="assets/stats.svg" width="100%" alt="активность за год и счётчики">
+  <img src="assets/stats.svg" width="100%" alt="activity over the last year and counters">
 </p>
 
-<sub>экраны собирает <a href="gen/build.py">gen/build.py</a> раз в сутки по закреплённым репозиториям · шрифты PT Mono, Jura, Rubik Mono One и зин-набор (OFL)</sub>
+<sub>screens are rendered daily from pinned repos by <a href="gen/build.py">gen/build.py</a> · fonts: PT Mono, Rubik Mono One and a zine set (OFL)</sub>
 """)
 
 
@@ -650,10 +651,10 @@ def build_stats(D):
     weeks = (len(cal) + off + 6) // 7
     GLY = {0: ("·", "dim"), 1: ("░", "fg"), 2: ("▒", "fg"), 3: ("▓", "fg"), 4: ("█", "hot")}
     hx, hy = 7, 3
-    c.append(s.window(0, 0, 65, 13, "АКТИВНОСТЬ · 52 НЕДЕЛИ", [], active=True))
-    for i, name in enumerate(["пн", "ср", "пт"]):
+    c.append(s.window(0, 0, 65, 13, "ACTIVITY · 52 WEEKS", [], active=True))
+    for i, name in enumerate(["Mon", "Wed", "Fri"]):
         c.append(s.text(2, hy + 1 + i * 2, "{d:" + name + "}"))
-    months = "янв фев мар апр май июн июл авг сен окт ноя дек".split()
+    months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
     last_m = None
     cols_el = [[] for _ in range(weeks)]
     for i, (d, lvl, n) in enumerate(cal):
@@ -666,30 +667,36 @@ def build_stats(D):
         cols_el[wk].append(s.text(hx + wk, hy + wd, [(ch, cl)]))
     for wk, els in enumerate(cols_el):
         c.append(anim("".join(els), .15 + wk * .018))
-    c.append(s.text(hx, hy + 8, "{d:меньше} · ░ ▒ ▓ {h:█} {d:больше}"))
-    c.append(s.text(hx + 30, hy + 8, f"{{h:{D['total']}}} {{d:вкладов за год}}"))
+    c.append(s.text(hx, hy + 8, "{d:less} · ░ ▒ ▓ {h:█} {d:more}"))
+    c.append(s.text(hx + 30, hy + 8, f"{{h:{D['total']}}} {{d:contributions this year}}"))
 
     u = D["user"]
     rows = [
-        ("вкладов за год", str(D["total"])),
-        ("лучшая серия", f"{D['best']} дн."),
-        ("текущая серия", f"{D['cur']} дн."),
+        ("contributions", str(D["total"])),
+        ("best streak", f"{D['best']} d"),
+        ("current streak", f"{D['cur']} d"),
         None,
-        ("репозиториев", str(u["public_repos"])),
-        ("звёзд у своих", str(D["stars"])),
-        ("фолловеров", str(u["followers"])),
-        ("на GitHub с", u["created_at"][:4]),
+        ("repositories", str(u["public_repos"])),
+        ("stars (own)", str(D["stars"])),
+        ("followers", str(u["followers"])),
+        ("on GitHub since", u["created_at"][:4]),
     ]
     kv = [None if r is None else f"{{d:{r[0]:<16}}}{{h:{r[1]}}}" for r in rows]
-    c.append(anim(s.window(67, 0, 33, 13, "СЧЁТЧИКИ", kv), .3))
+    c.append(anim(s.window(67, 0, 33, 13, "COUNTERS", kv), .3))
     now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    c.append(s.bar(ROWS - 1, f"{{k:F3}} Статистика   обновлено {now}", "github actions · раз в сутки"))
+    c.append(s.bar(ROWS - 1, f"{{k:F3}} Stats   updated {now}", "github actions · daily"))
     s.render("".join(c), OUT / "stats.svg", s.stickers("stats", 1.3))
 
 
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
-    D = fetch()
+    cache = os.environ.get("LZ_CACHE")  # локально: LZ_CACHE=/tmp/lz.json, чтобы не жечь лимит API
+    if cache and os.path.exists(cache):
+        D = json.load(open(cache))
+    else:
+        D = fetch()
+        if cache:
+            json.dump(D, open(cache, "w"))
     build_header(D)
     build_readme(build_cards(D))
     build_stats(D)

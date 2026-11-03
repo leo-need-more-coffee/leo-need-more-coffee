@@ -28,4 +28,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets README.md
-          git diff --cached --quiet || { git commit -m "ЛЗ-86: обновить экраны"; git push; }
+          git diff --cached --quiet || { git commit -m "LZ-86: refresh screens"; git push; }
