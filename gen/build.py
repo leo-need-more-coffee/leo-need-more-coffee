@@ -25,17 +25,23 @@ P = dict(fg="#d9e6ff", dim="#5d6d8a", hot="#ffffff", acc="#8fd4ff", ink="#05080f
 FS, CW, CH, BASE = 16, 9.6, 20, 15  # кегль, ширина и высота клетки, базовая линия
 
 ORGS = ["evadepw", "mireacrm"]
-# (owner/репо, описание, подпись-наклейка над заголовком не нужна — наклейки в ZINE)
-PROJECTS = [
-    ("leo-need-more-coffee/stageflow", "LLM-пайплайны для SaaS: граф в {h:JSON}, стадии на Python. PyPI, доки, тесты"),
-    ("leo-need-more-coffee/stageflow-ui", "Редактор и {h:отладчик} StageFlow: рисуешь граф и гоняешь его на живом ядре"),
-    ("evadepw/evade-player", "Видеоплеер на {h:React} и Web Component: HLS, звук, пропуск фрагментов. В npm"),
-    ("evadepw/evadeplayer-platform", "Видео-бэкенд на {h:Go}: загрузка, транскод в HLS на GPU, подписанные ссылки"),
-    ("mireacrm", "{h:CRM} на микросервисах: Python и Go, gRPC, RabbitMQ, NATS, Keycloak"),
-    ("leo-need-more-coffee/flipperzero-bomberduck", "Бомбермен для {h:Flipper Zero}: утка, бомбы, взрывы на монохромном экране 128×64"),
-    ("leo-need-more-coffee/element-lazy-android", "Свой форк {h:Element X}: конфиг тем, видеокружки и стикеры в Matrix"),
-    ("leo-need-more-coffee/flipperzero-4inrow", "«Четыре в ряд» для {h:Flipper Zero}: классика на дельфине"),
-]
+# описания для карточек; карточки строятся по закреплённым (Pinned) репозиториям профиля.
+# ключ без "/" — карточка целой организации (так показывается закреплённый org/.github)
+DESC = {
+    "leo-need-more-coffee/stageflow": "LLM-пайплайны для SaaS: граф в {h:JSON}, стадии на Python. PyPI, доки, тесты",
+    "leo-need-more-coffee/stageflow-ui": "Редактор и {h:отладчик} StageFlow: рисуешь граф и гоняешь его на живом ядре",
+    "leo-need-more-coffee/stageflow-mcp": "StageFlow через {h:MCP}: агент сам пишет, проверяет и запускает пайплайны",
+    "evadepw/evade-player": "Видеоплеер на {h:React} и Web Component: HLS, звук, пропуск фрагментов. В npm",
+    "evadepw/evadeplayer-platform": "Видео-бэкенд на {h:Go}: загрузка, транскод в HLS на GPU, подписанные ссылки",
+    "mireacrm": "{h:CRM} на микросервисах: Python и Go, gRPC, RabbitMQ, NATS, Keycloak",
+    "leo-need-more-coffee/neuro-balance": "{h:Нейроэволюция} с нуля: своя сеть без фреймворков учится держать мяч на платформе",
+    "leo-need-more-coffee/flipperzero-bomberduck": "Бомбермен для {h:Flipper Zero}: утка, бомбы, взрывы на монохромном экране 128×64",
+    "leo-need-more-coffee/flipperzero-4inrow": "«Четыре в ряд» для {h:Flipper Zero}: классика на дельфине",
+    "leo-need-more-coffee/element-lazy-android": "Свой форк {h:Element X}: конфиг тем, видеокружки и стикеры в Matrix",
+    "leo-need-more-coffee/mireacrm": "Монорепо {h:Mirea CRM}: 8 сервисов на Python и Go за единым шлюзом",
+}
+FALLBACK_PINS = ["leo-need-more-coffee/stageflow", "mireacrm", "evadepw/evadeplayer-platform",
+                 "leo-need-more-coffee/neuro-balance", "leo-need-more-coffee/stageflow-ui", "leo-need-more-coffee/flipperzero-bomberduck"]
 
 # наклейки: (колонка левого края, строка центра, текст, наклон в радианах, сид, масштаб)
 ZINE = {
@@ -44,6 +50,7 @@ ZINE = {
     "card-stageflow": [(16, 3.9, "JSON, А НЕ КОД", -0.04, 12, .72)],
     "card-evadeplayer-platform": [(24, 3.9, "v1.0", 0.06, 5, .8)],
     "card-mireacrm": [(21, 3.9, "17 РЕПО", -0.05, 9, .78)],
+    "card-neuro-balance": [(22, 3.9, "С НУЛЯ", 0.05, 4, .8)],
     "stats": [(69, 10.7, "ЛЕНЬ НЕ ПОРОК", -0.05, 17, .9)],
 }
 
@@ -63,8 +70,21 @@ def fetch():
     user = get(f"https://api.github.com/users/{USER}")
     repos = get(f"https://api.github.com/users/{USER}/repos?per_page=100")
     own = [r for r in repos if not r["fork"]]
+    prof = get(f"https://github.com/{USER}", raw=True)
+    pins = []
+    for m in re.finditer(r'href="/([\w.-]+)/([\w.-]+)"[^>]*>(?:(?!</a>).)*?<span class="repo"[^>]*>([^<]+)', prof, re.S):
+        if m.group(2) == m.group(3).strip():
+            full = m.group(1) if m.group(2) == ".github" else f"{m.group(1)}/{m.group(2)}"
+            if full not in pins:
+                pins.append(full)
+    pins = pins or FALLBACK_PINS
     by_org = {o: get(f"https://api.github.com/orgs/{o}/repos?per_page=100") for o in ORGS}
+    for full in pins:
+        if "/" not in full and full not in by_org:
+            by_org[full] = get(f"https://api.github.com/orgs/{full}/repos?per_page=100")
     org_repos = [r for rs in by_org.values() for r in rs]
+    known = {r["full_name"] for r in repos + org_repos}
+    extra = [get(f"https://api.github.com/repos/{f}") for f in pins if "/" in f and f not in known]
     page = get(f"https://github.com/users/{USER}/contributions", raw=True)
     days = {}
     for m in re.finditer(r'data-date="([\d-]+)" id="(contribution-day-component-\d+-\d+)" data-level="(\d)"', page):
@@ -84,7 +104,7 @@ def fetch():
         cur += 1
     langs = Counter(r["language"] for r in own + org_repos if r["language"])
     return dict(
-        user=user, repos=repos, own=own, by_name={r["full_name"]: r for r in repos + org_repos}, by_org=by_org,
+        user=user, repos=repos, own=own, by_name={r["full_name"]: r for r in repos + org_repos + extra}, by_org=by_org, pins=pins,
         cal=cal, total=sum(n for *_, n in cal), best=best, cur=cur,
         stars=sum(r["stargazers_count"] for r in own), langs=langs.most_common(4),
     )
@@ -563,7 +583,11 @@ def build_header(D):
 # ---------------------------------------------------------------- карточки проектов
 def build_cards(D):
     COLS, ROWS = 48, 7
-    for full, desc in PROJECTS:
+    for old in OUT.glob("card-*.svg"):
+        old.unlink()
+    cards = []
+    for full in D["pins"]:
+        desc = DESC.get(full) or html.escape((D["by_name"].get(full) or {}).get("description") or "")
         if "/" not in full:  # карточка целой организации
             rs = D["by_org"].get(full, [])
             lg = " · ".join(l for l, _ in Counter(x["language"] for x in rs if x["language"]).most_common(2))
@@ -591,6 +615,28 @@ def build_cards(D):
         el += s.text(COLS - 2 - len(btn), ROWS - 2, "{h:" + btn + "}")
         key = f"card-{name}"
         s.render(el, OUT / f"{key}.svg", s.stickers(key, .25), r=10)
+        cards.append((full, f"{key}.svg"))
+    return cards
+
+
+def build_readme(cards):
+    link = lambda f: f"https://github.com/{f}"
+    img = lambda f, svg: f'<a href="{link(f)}"><img src="assets/{svg}" width="49%" alt="{f}"></a>'
+    rows = "\n".join("  " + " ".join(img(*c) for c in cards[i:i + 2]) for i in range(0, len(cards), 2))
+    (ROOT / "README.md").write_text(f"""<p align="center">
+  <img src="assets/header.svg" width="100%" alt="ЛЗ-86 видеотерминал · лень · leo-need-more-coffee">
+</p>
+
+<p align="center">
+{rows}
+</p>
+
+<p align="center">
+  <img src="assets/stats.svg" width="100%" alt="активность за год и счётчики">
+</p>
+
+<sub>экраны собирает <a href="gen/build.py">gen/build.py</a> раз в сутки по закреплённым репозиториям · шрифты PT Mono, Jura, Rubik Mono One и зин-набор (OFL)</sub>
+""")
 
 
 # ---------------------------------------------------------------- статистика
@@ -645,5 +691,5 @@ if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     D = fetch()
     build_header(D)
-    build_cards(D)
+    build_readme(build_cards(D))
     build_stats(D)
