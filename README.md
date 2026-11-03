@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/header.svg" width="100%" alt="ЛЗ-86 видеотерминал · лень · leo-need-more-coffee">
+  <img src="assets/header.svg" width="100%" alt="LZ-86 video terminal · lazy · leo-need-more-coffee">
 </p>
 
 <p align="center">
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/stats.svg" width="100%" alt="активность за год и счётчики">
+  <img src="assets/stats.svg" width="100%" alt="activity over the last year and counters">
 </p>
 
-<sub>экраны собирает <a href="gen/build.py">gen/build.py</a> раз в сутки по закреплённым репозиториям · шрифты PT Mono, Jura, Rubik Mono One и зин-набор (OFL)</sub>
+<sub>screens are rendered daily from pinned repos by <a href="gen/build.py">gen/build.py</a> · fonts: PT Mono, Rubik Mono One and a zine set (OFL)</sub>
