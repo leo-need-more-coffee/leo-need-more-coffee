@@ -46,12 +46,12 @@ FALLBACK_PINS = ["leo-need-more-coffee/stageflow", "mireacrm", "evadepw/evadepla
 # наклейки: (колонка левого края, строка центра, текст, наклон в радианах, сид, масштаб)
 ZINE = {
     "header": [(20, 16.75, "NEED MORE COFFEE", -0.035, 7, 1), (62, 25.3, "OPEN SOURCE", 0.04, 3, 1)],
-    "card-flipperzero-bomberduck": [(24, 3.7, "QUACK!", 0.07, 11, .75)],
-    "card-stageflow": [(16, 3.9, "JSON, NOT CODE", -0.04, 12, .72)],
-    "card-evadeplayer-platform": [(24, 3.9, "v1.0", 0.06, 5, .8)],
-    "card-mireacrm": [(21, 3.9, "17 REPOS", -0.05, 9, .78)],
-    "card-neuro-balance": [(22, 3.9, "FROM SCRATCH", 0.05, 4, .8)],
-    "stats": [(10, 10.3, "LAZINESS DRIVES PROGRESS", -0.03, 17, .78)],
+    "card-flipperzero-bomberduck": [(26, 3.9, "QUACK!", 0.06, 11, .62)],
+    "card-stageflow": [(14, 4.0, "JSON, NOT CODE", -0.03, 12, .58)],
+    "card-evadeplayer-platform": [(24, 4.0, "v1.0", 0.06, 5, .66)],
+    "card-mireacrm": [(20, 4.0, "17 REPOS", -0.04, 9, .6)],
+    "card-neuro-balance": [(14, 4.0, "FROM SCRATCH", 0.03, 4, .56)],
+    "stats": [(9, 10.55, "LAZINESS DRIVES PROGRESS", -0.025, 17, .66)],
 }
 
 
@@ -642,7 +642,7 @@ def build_readme(cards):
 
 # ---------------------------------------------------------------- статистика
 def build_stats(D):
-    COLS, ROWS = 100, 14
+    COLS, ROWS = 100, 15
     s = Screen(COLS, ROWS)
     c = []
     cal = D["cal"]
@@ -651,7 +651,7 @@ def build_stats(D):
     weeks = (len(cal) + off + 6) // 7
     GLY = {0: ("·", "dim"), 1: ("░", "fg"), 2: ("▒", "fg"), 3: ("▓", "fg"), 4: ("█", "hot")}
     hx, hy = 7, 3
-    c.append(s.window(0, 0, 65, 13, "ACTIVITY · 52 WEEKS", [], active=True))
+    c.append(s.window(0, 0, 65, 14, "ACTIVITY · 52 WEEKS", [], active=True))
     for i, name in enumerate(["Mon", "Wed", "Fri"]):
         c.append(s.text(2, hy + 1 + i * 2, "{d:" + name + "}"))
     months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
@@ -667,8 +667,8 @@ def build_stats(D):
         cols_el[wk].append(s.text(hx + wk, hy + wd, [(ch, cl)]))
     for wk, els in enumerate(cols_el):
         c.append(anim("".join(els), .15 + wk * .018))
-    c.append(s.text(hx, hy + 8, "{d:less} · ░ ▒ ▓ {h:█} {d:more}"))
-    c.append(s.text(hx + 30, hy + 8, f"{{h:{D['total']}}} {{d:contributions this year}}"))
+    c.append(s.text(hx, hy + 9, "{d:less} · ░ ▒ ▓ {h:█} {d:more}"))
+    c.append(s.text(hx + 30, hy + 9, f"{{h:{D['total']}}} {{d:contributions this year}}"))
 
     u = D["user"]
     rows = [
@@ -682,7 +682,7 @@ def build_stats(D):
         ("on GitHub since", u["created_at"][:4]),
     ]
     kv = [None if r is None else f"{{d:{r[0]:<16}}}{{h:{r[1]}}}" for r in rows]
-    c.append(anim(s.window(67, 0, 33, 13, "COUNTERS", kv), .3))
+    c.append(anim(s.window(67, 0, 33, 14, "COUNTERS", kv), .3))
     now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     c.append(s.bar(ROWS - 1, f"{{k:F3}} Stats   updated {now}", "github actions · daily"))
     s.render("".join(c), OUT / "stats.svg", s.stickers("stats", 1.3))
