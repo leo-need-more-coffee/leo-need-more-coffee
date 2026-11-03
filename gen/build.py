@@ -6,7 +6,7 @@
 Данные тянет из публичного API GitHub и страницы contributions.
 GITHUB_TOKEN из окружения (если есть) поднимает лимит запросов.
 """
-import base64, datetime as dt, html, io, json, os, random, re, urllib.request
+import base64, datetime as dt, html, io, json, math, os, random, re, urllib.request
 from collections import Counter
 from pathlib import Path
 
@@ -24,20 +24,26 @@ USER = "leo-need-more-coffee"
 P = dict(fg="#d9e6ff", dim="#5d6d8a", hot="#ffffff", acc="#8fd4ff", ink="#05080f", inkd="#34425c", tube="#101a2c")
 FS, CW, CH, BASE = 16, 9.6, 20, 15  # кегль, ширина и высота клетки, базовая линия
 
+ORGS = ["evadepw", "mireacrm"]
+# (owner/репо, описание, подпись-наклейка над заголовком не нужна — наклейки в ZINE)
 PROJECTS = [
-    ("flipperzero-bomberduck", "Бомбермен для {h:Flipper Zero}: утка, бомбы, взрывы на монохромном экране 128×64"),
-    ("flipperzero-4inrow", "«Четыре в ряд» для {h:Flipper Zero}: классика на дельфине"),
-    ("stageflow", "Фреймворк декларативных {h:LLM-пайплайнов} для SaaS: JSON-граф, стадии, политики тенантов"),
-    ("stageflow-mcp", "StageFlow через {h:MCP}: агент сам пишет, проверяет и запускает пайплайны"),
-    ("element-lazy-android", "Свой форк {h:Element X}: конфиг тем, видеокружки и стикеры в Matrix"),
-    ("simple-orm", "Маленькая {h:ORM} поверх sqlite3 без лишней магии"),
+    ("leo-need-more-coffee/stageflow", "LLM-пайплайны для SaaS: граф в {h:JSON}, стадии на Python. PyPI, доки, тесты"),
+    ("leo-need-more-coffee/stageflow-ui", "Редактор и {h:отладчик} StageFlow: рисуешь граф и гоняешь его на живом ядре"),
+    ("evadepw/evade-player", "Видеоплеер на {h:React} и Web Component: HLS, звук, пропуск фрагментов. В npm"),
+    ("evadepw/evadeplayer-platform", "Видео-бэкенд на {h:Go}: загрузка, транскод в HLS на GPU, подписанные ссылки"),
+    ("mireacrm", "{h:CRM} на микросервисах: Python и Go, gRPC, RabbitMQ, NATS, Keycloak"),
+    ("leo-need-more-coffee/flipperzero-bomberduck", "Бомбермен для {h:Flipper Zero}: утка, бомбы, взрывы на монохромном экране 128×64"),
+    ("leo-need-more-coffee/element-lazy-android", "Свой форк {h:Element X}: конфиг тем, видеокружки и стикеры в Matrix"),
+    ("leo-need-more-coffee/flipperzero-4inrow", "«Четыре в ряд» для {h:Flipper Zero}: классика на дельфине"),
 ]
 
 # наклейки: (колонка левого края, строка центра, текст, наклон в радианах, сид, масштаб)
 ZINE = {
     "header": [(20, 16.75, "НУЖНО БОЛЬШЕ КОФЕ", -0.035, 7, 1), (62, 25.3, "ОТКРЫТЫЙ КОД", 0.04, 3, 1)],
-    "card-flipperzero-bomberduck": [(38, 3.6, "КРЯ!", 0.07, 11, .85)],
-    "card-stageflow": [(15, 4.1, "JSON, А НЕ КОД", -0.04, 12, .72)],
+    "card-flipperzero-bomberduck": [(24, 3.7, "КРЯ!", 0.07, 11, .75)],
+    "card-stageflow": [(16, 3.9, "JSON, А НЕ КОД", -0.04, 12, .72)],
+    "card-evadeplayer-platform": [(24, 3.9, "v1.0", 0.06, 5, .8)],
+    "card-mireacrm": [(21, 3.9, "17 РЕПО", -0.05, 9, .78)],
     "stats": [(69, 10.7, "ЛЕНЬ НЕ ПОРОК", -0.05, 17, .9)],
 }
 
@@ -57,6 +63,8 @@ def fetch():
     user = get(f"https://api.github.com/users/{USER}")
     repos = get(f"https://api.github.com/users/{USER}/repos?per_page=100")
     own = [r for r in repos if not r["fork"]]
+    by_org = {o: get(f"https://api.github.com/orgs/{o}/repos?per_page=100") for o in ORGS}
+    org_repos = [r for rs in by_org.values() for r in rs]
     page = get(f"https://github.com/users/{USER}/contributions", raw=True)
     days = {}
     for m in re.finditer(r'data-date="([\d-]+)" id="(contribution-day-component-\d+-\d+)" data-level="(\d)"', page):
@@ -74,9 +82,9 @@ def fetch():
         if not n:
             break
         cur += 1
-    langs = Counter(r["language"] for r in own if r["language"])
+    langs = Counter(r["language"] for r in own + org_repos if r["language"])
     return dict(
-        user=user, repos=repos, own=own, by_name={r["name"]: r for r in repos},
+        user=user, repos=repos, own=own, by_name={r["full_name"]: r for r in repos + org_repos}, by_org=by_org,
         cal=cal, total=sum(n for *_, n in cal), best=best, cur=cur,
         stars=sum(r["stargazers_count"] for r in own), langs=langs.most_common(4),
     )
@@ -152,6 +160,7 @@ def mix(a, b, t):
 ZFONTS = [("Oswald.ttf", 700), ("PlayfairDisplay.ttf", 900), ("RussoOne.ttf", None), ("YesevaOne.ttf", None),
           ("OldStandard-Bold.ttf", None), ("Underdog.ttf", None), ("PressStart2P.ttf", None), ("Neucha.ttf", None),
           ("PTSerif-BoldItalic.ttf", None), ("RubikMonoOne.ttf", None), ("Jura.ttf", 700)]
+Z_APPROACH, Z_PRESS = .12, .34   # подлёт и прижатие наклейки, секунды
 ZPAL = [("#f2efe6", "#0b0b0b"), ("#f2efe6", "#e3241b"), ("#e3241b", "#f7f4ea"), ("#ff6a10", "#0b0b0b"),
         ("#14c8ff", "#0b0b0b"), ("#8cff2e", "#0b0b0b"), ("#0b0b0b", "#f7f4ea"), ("#0b0b0b", "#ff6a10"), ("#1d3bff", "#f7f4ea")]
 
@@ -193,11 +202,8 @@ def sticker(scr, cx, cy, text, rot, seed, big, t0):
     H = L * 1.6
     # не вылезать за правый край стекла (с запасом на скотч)
     cx = max(16 + L, min(cx, scr.w - 16 - L * 1.3 - x))
-    order = list(range(len(items)))
-    random.Random(seed).shuffle(order)
     out = []
-    for rank, i in enumerate(order):
-        it = items[i]
+    for it in items:
         bg, fg = it["pc"]
         g = []
         if it["style"] != "bare":
@@ -212,24 +218,59 @@ def sticker(scr, cx, cy, text, rot, seed, big, t0):
             stroke = f' stroke="#000" stroke-width="{it["size"] * .12:.1f}" paint-order="stroke" stroke-linejoin="round"'
         g.append(f'<text font-family="Z{it["fi"]}" font-size="{it["size"]:.1f}" text-anchor="middle" dominant-baseline="central" '
                  f'y="{it["size"] * .04:.1f}" fill="{fill}"{stroke}>{html.escape(it["ch"])}</text>')
-        out.append(f'<g transform="translate({it["x"]:.1f} {it["y"]:.1f}) rotate({it["rot"] * 57.2958:.1f})">'
-                   f'<g class="z" style="animation-delay:{t0 + rank * .055:.2f}s;--s:{it["spin"] * 25}deg">{"".join(g)}</g></g>')
+        out.append(f'<g transform="translate({it["x"]:.1f} {it["y"]:.1f}) rotate({it["rot"] * 57.2958:.1f})">{"".join(g)}</g>')
     # скотч на крайних буквах
-    t_end = t0 + (len(items) - 1) * .055 + .17
     if items:
         ends = [(items[0]["x"] - items[0]["w"] * .62, -H * .16, -1), (items[-1]["x"] + items[-1]["w"] * .62, -H * .12, 1)]
-        for k, (tx, ty, side) in enumerate(ends):
+        for tx, ty, side in ends:
             tw, th, a = L * (1.05 + R() * .3), L * (.36 + R() * .08), side * (.62 + R() * .35)
             poly = [(-tw / 2, -th / 2), (tw / 2, -th / 2)]
             poly += [(tw / 2 + R() * th * .12, -th / 2 + th * q / 6) for q in range(7)]
             poly += [(-tw / 2, th / 2)]
             poly += [(-tw / 2 - R() * th * .12, th / 2 - th * q / 6) for q in range(7)]
             p = pts(poly)
-            out.append(f'<g transform="translate({tx:.1f} {ty:.1f}) rotate({a * 57.2958:.1f})"><g class="tp" style="animation-delay:{t_end + .06 + k * .14:.2f}s">'
+            out.append(f'<g transform="translate({tx:.1f} {ty:.1f}) rotate({a * 57.2958:.1f})">'
                        f'<polygon points="{p}" transform="translate(1.5 2)" fill="#000" opacity=".22"/>'
                        f'<polygon points="{p}" fill="#e4dcc4" opacity=".42" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>'
-                       f'<rect x="{-tw / 2:.1f}" y="{-th / 2:.1f}" width="{tw:.1f}" height="{th * .22:.1f}" fill="#fff" opacity=".22"/></g></g>')
-    return f'<g transform="translate({cx:.1f} {cy:.1f}) rotate({rot * 57.2958:.2f})">{"".join(out)}</g>'
+                       f'<rect x="{-tw / 2:.1f}" y="{-th / 2:.1f}" width="{tw:.1f}" height="{th * .22:.1f}" fill="#fff" opacity=".22"/></g>')
+
+    # --- как на сайте: подлёт целиком, затем прижатие слева направо;
+    #     неприжатая часть загнута к зрителю (крупнее и темнее), потом глитч с RGB-разъездом
+    uid = f"{seed}x{len(scr.zdefs)}"
+    scr.zdefs.append(f'<g id="zk{uid}">{"".join(out)}</g>')
+    xa, xb = -L * 1.7, x + L * 1.7
+    W, cxp, fz = xb - xa, (xa + xb) / 2, (xb - xa) * .85
+    io = lambda q: 2 * q * q if q < .5 else 1 - (-2 * q + 2) ** 2 / 2
+    N, A, PZ = 16, Z_APPROACH, Z_PRESS
+    D, sw = A + PZ, W / N
+    strips = []
+    for i in range(N):
+        x0 = xa + i * sw
+        scr.zdefs.append(f'<clipPath id="zc{uid}_{i}"><rect x="{x0 - .7:.1f}" y="{-L * 2.5:.1f}" width="{sw + 1.4:.1f}" height="{L * 5:.1f}"/></clipPath>')
+        fr = []
+        for k in range(13):
+            tau = D * k / 12
+            p1, p2 = min(1, tau / A), max(0, min(1, (tau - A) / PZ))
+            hover = W * .5 * (1 - p1) ** 2
+            hinge = W * io(p2)
+            ang = (1.45 - .35 * io(p1)) * (1 - .2 * p2)
+            kap = ang / max(1, W - hinge)
+            xr = i * sw + sw / 2
+            a = min(1.45, kap * (xr - hinge)) if xr > hinge else 0
+            z = (xr - hinge) * math.sin(a) * .8 if a else 0
+            if p2 >= 1:
+                a = z = hover = 0
+            sc = fz / max(fz * .35, fz - z - hover)
+            dark = min(.55, math.sin(a) * .6)
+            fr.append(f"{k * 100 / 12:.1f}%{{transform:translate({cxp * (1 - sc):.1f}px,0) scale({sc:.3f});"
+                      f"filter:brightness({1 - dark:.2f});opacity:{min(1, p1 * 2.5):.2f}}}")
+        scr.zcss.append(f"@keyframes z{uid}_{i}{{{''.join(fr)}}}")
+        strips.append(f'<g class="zs" style="animation:z{uid}_{i} {D:.2f}s linear {t0:.2f}s both">'
+                      f'<g clip-path="url(#zc{uid}_{i})"><use href="#zk{uid}"/></g></g>')
+    use = lambda cls, flt, d: f'<use href="#zk{uid}" class="{cls}" filter="url(#{flt})" style="animation-delay:{d:.2f}s"/>'
+    body = (use("zsh", "zfs", t0) + f'<g class="zg" style="animation-delay:{t0 + A + PZ * .4:.2f}s">' + "".join(strips)
+            + use("zR", "zfr", t0 + A) + use("zC", "zfc", t0 + A) + "</g>")
+    return f'<g transform="translate({cx:.1f} {cy:.1f}) rotate({rot * 57.2958:.2f})">{body}</g>'
 
 
 # ---------------------------------------------------------------- разметка текста
@@ -296,17 +337,20 @@ CSS = """
 .pow{transform-box:view-box;transform-origin:50%% 50%%;animation:pow .5s ease-out both}
 .ray{animation:ray 7s linear infinite}
 .fl{animation:fl 5s steps(1) infinite}
-.z{transform-box:fill-box;transform-origin:50%% 50%%;animation:slap .2s cubic-bezier(.2,.7,.3,1) both}
-.tp{transform-box:fill-box;transform-origin:0 50%%;animation:unroll .16s ease-out both}
+.zsh{opacity:0;animation:zsh .55s ease-out both}
+.zg{animation:zg .5s steps(1) both}
+.zR,.zC{opacity:0;mix-blend-mode:screen;animation:zR .5s steps(1) forwards}.zC{animation-name:zC}
 @keyframes on{to{opacity:1}}
 @keyframes off{to{opacity:0}}
 @keyframes blink{50%%{opacity:0}}
 @keyframes pow{0%%{transform:scale(1,.004);opacity:.2}55%%{transform:scale(1,.004);opacity:1}100%%{transform:scale(1,1)}}
 @keyframes ray{from{transform:translateY(-160px)}to{transform:translateY(%(h)spx)}}
 @keyframes fl{0%%,100%%{opacity:1}47%%{opacity:.93}49%%{opacity:1}83%%{opacity:.96}}
-@keyframes slap{0%%{opacity:0;transform:translateY(-16px) scale(1.9) rotate(var(--s))}30%%{opacity:1}72%%{transform:scale(.95)}100%%{opacity:1;transform:none}}
-@keyframes unroll{from{transform:scaleX(0)}to{transform:none}}
-@media (prefers-reduced-motion:reduce){.a{animation:none;opacity:1}.boot{display:none}.cur,.pow,.ray,.fl,.z,.tp{animation:none}.ray{display:none}}
+@keyframes zsh{0%%{transform:translate(18px,26px);opacity:0}25%%{opacity:.6}100%%{transform:none;opacity:0}}
+@keyframes zg{0%%{transform:translate(3px,0);opacity:.8}12%%{transform:translate(-3px,1px);opacity:1}24%%{transform:translate(2px,-1px);opacity:.7}36%%{transform:translate(-1px,0);opacity:1}50%%{transform:translate(1px,0)}62%%,100%%{transform:none;opacity:1}}
+@keyframes zR{0%%{opacity:.38;transform:translate(-5px,0)}15%%{opacity:0}30%%{opacity:.3;transform:translate(4px,1px)}45%%{opacity:0}60%%{opacity:.35;transform:translate(-2px,0)}75%%,100%%{opacity:0;transform:none}}
+@keyframes zC{0%%{opacity:.38;transform:translate(5px,0)}15%%{opacity:0}30%%{opacity:.3;transform:translate(-4px,-1px)}45%%{opacity:0}60%%{opacity:.35;transform:translate(2px,0)}75%%,100%%{opacity:0;transform:none}}
+@media (prefers-reduced-motion:reduce){.a{animation:none;opacity:1}.boot{display:none}.cur,.pow,.ray,.fl,.zg{animation:none}.zs{animation:none!important}.zsh,.zR,.zC{display:none}.ray{display:none}}
 """
 
 
@@ -317,7 +361,7 @@ class Screen:
         self.cols, self.rows = cols, rows
         self.w, self.h = round(cols * CW + 2 * pad), round(rows * CH + 2 * pad)
         self.ox = self.oy = pad
-        self.chars, self.zchars = set(), {}
+        self.chars, self.zchars, self.zdefs, self.zcss = set(), {}, [], []
 
     X = lambda s, c: s.ox + c * CW
     Y = lambda s, r: s.oy + r * CH
@@ -387,7 +431,7 @@ class Screen:
 
     def render(self, content, path, zine="", r=12):
         w, h = self.w, self.h
-        style = CSS % dict(fs=FS, h=h, **P)
+        style = CSS % dict(fs=FS, h=h, **P) + "".join(self.zcss)
         style += font_face("PTMono.ttf", "LZ", "".join(self.chars))
         for fi, chs in self.zchars.items():
             style += font_face(ZFONTS[fi][0], f"Z{fi}", "".join(chs), ZFONTS[fi][1])
@@ -401,6 +445,10 @@ class Screen:
 <radialGradient id="tube" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="{P['tube']}"/><stop offset="100%" stop-color="{P['ink']}"/></radialGradient>
 <linearGradient id="rayg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{P['fg']}" stop-opacity="0"/><stop offset=".5" stop-color="{P['fg']}" stop-opacity=".05"/><stop offset="1" stop-color="{P['fg']}" stop-opacity="0"/></linearGradient>
 <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".06"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<filter id="zfs" x="-20%" y="-50%" width="140%" height="200%"><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/><feGaussianBlur stdDeviation="5"/></filter>
+<filter id="zfr"><feColorMatrix values="0 0 0 0 1  0 0 0 0 .08  0 0 0 0 .15  0 0 0 1 0"/></filter>
+<filter id="zfc"><feColorMatrix values="0 0 0 0 0  0 0 0 0 .9  0 0 0 0 1  0 0 0 1 0"/></filter>
+{''.join(self.zdefs)}
 <filter id="glow" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
 <g clip-path="url(#scr)">
@@ -486,10 +534,10 @@ def build_header(D):
             [("код      ", "dim")] + s.meter(.65, 12) + [(" 65 %", "fg")],
         ]),
         (2, 17, 60, 9, "СЕЙЧАС В РАБОТЕ", False, [
-            "{a:▪} {h:StageFlow}: декларативные LLM-пайплайны для SaaS",
-            "{a:▪} {h:stageflow-mcp}: агент сам пишет и гоняет пайплайны",
-            "{a:▪} игры для {h:Flipper Zero} на C",
-            "{a:▪} {h:element-lazy}: Matrix-клиент с темами и кружками",
+            "{a:▪} {h:StageFlow}: LLM-пайплайны, редактор и MCP для агентов",
+            "{a:▪} {h:EvadePlayer}: видеоплеер в npm + HLS-бэкенд на Go",
+            "{a:▪} {h:@mireacrm}: CRM из 17 репо, gRPC, RabbitMQ, NATS",
+            "{a:▪} игры для {h:Flipper Zero} и свой Matrix-клиент",
             None,
             None,
             "{d:lazy@lz86:~$} make coffee",
@@ -503,7 +551,7 @@ def build_header(D):
         if active:
             el += s.logo(x + 2, y + 2, "ЛЕНЬ", w - 4, 7)
             el += s.text(x + 2, y + 10, "{h:пишу код, пока не кончится кофе}", center_w=w - 4)
-            el += s.text(x + 2, y + 12, "{d:Python · C · LLM-пайплайны · Flipper Zero · Matrix}", center_w=w - 4)
+            el += s.text(x + 2, y + 12, "{d:Python · Go · TypeScript · C · LLM · видео · Flipper}", center_w=w - 4)
         c.append(anim(el, T + .12 + i * .14))
     cx = 2 + 2 + len("lazy@lz86:~$ make coffee") + 1
     c.append(anim(f'<g class="cur">{s.rect(cx, 24, .9, 1, P["fg"])}</g>', T + .7))
@@ -515,19 +563,32 @@ def build_header(D):
 # ---------------------------------------------------------------- карточки проектов
 def build_cards(D):
     COLS, ROWS = 48, 7
-    for name, desc in PROJECTS:
-        r = D["by_name"].get(name, {})
+    for full, desc in PROJECTS:
+        if "/" not in full:  # карточка целой организации
+            rs = D["by_org"].get(full, [])
+            lg = " · ".join(l for l, _ in Counter(x["language"] for x in rs if x["language"]).most_common(2))
+            owner, name = full, full
+            r = dict(org=True, n=len(rs), langs=lg, stars=sum(x["stargazers_count"] for x in rs))
+        else:
+            r = D["by_name"].get(full, {})
+            owner, name = full.split("/")
         s = Screen(COLS, ROWS, pad=14)
         body = wrap(desc, COLS - 4)[:3]
         while len(body) < 3:
             body.append(None)
         lang = r.get("language") or "—"
         meta = f"{{a:*}} {r.get('stargazers_count', 0)}   {{d:язык}} {lang}"
+        if r.get("org"):
+            meta = f"{{d:орга}} {r['n']} репо   {{d:языки}} {r['langs']}"
         if r.get("fork"):
             meta += "   {d:форк}"
         body += [None, meta]
-        el = s.window(0, 0, COLS, ROWS, name.upper(), body, active=True)
-        el += s.text(COLS - 2 - len("[ ОТКРЫТЬ ]"), ROWS - 2, "{h:[ ОТКРЫТЬ ]}")
+        title = name.upper() if owner in (USER, name) else f"{owner}/{name}".upper()
+        if r.get("org"):
+            title = f"@{name}".upper()
+        el = s.window(0, 0, COLS, ROWS, title, body, active=True)
+        btn = "[ ОРГА ]" if r.get("org") else "[ ОТКРЫТЬ ]"
+        el += s.text(COLS - 2 - len(btn), ROWS - 2, "{h:" + btn + "}")
         key = f"card-{name}"
         s.render(el, OUT / f"{key}.svg", s.stickers(key, .25), r=10)
 

@@ -3,13 +3,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/leo-need-more-coffee/flipperzero-bomberduck"><img src="assets/card-flipperzero-bomberduck.svg" width="49%" alt="flipperzero-bomberduck"></a> <a href="https://github.com/leo-need-more-coffee/flipperzero-4inrow"><img src="assets/card-flipperzero-4inrow.svg" width="49%" alt="flipperzero-4inrow"></a>
-  <a href="https://github.com/leo-need-more-coffee/stageflow"><img src="assets/card-stageflow.svg" width="49%" alt="stageflow"></a> <a href="https://github.com/leo-need-more-coffee/stageflow-mcp"><img src="assets/card-stageflow-mcp.svg" width="49%" alt="stageflow-mcp"></a>
-  <a href="https://github.com/leo-need-more-coffee/element-lazy-android"><img src="assets/card-element-lazy-android.svg" width="49%" alt="element-lazy-android"></a> <a href="https://github.com/leo-need-more-coffee/simple-orm"><img src="assets/card-simple-orm.svg" width="49%" alt="simple-orm"></a>
+  <a href="https://github.com/leo-need-more-coffee/stageflow"><img src="assets/card-stageflow.svg" width="49%" alt="leo-need-more-coffee/stageflow"></a> <a href="https://github.com/leo-need-more-coffee/stageflow-ui"><img src="assets/card-stageflow-ui.svg" width="49%" alt="leo-need-more-coffee/stageflow-ui"></a>
+  <a href="https://github.com/evadepw/evade-player"><img src="assets/card-evade-player.svg" width="49%" alt="evadepw/evade-player"></a> <a href="https://github.com/evadepw/evadeplayer-platform"><img src="assets/card-evadeplayer-platform.svg" width="49%" alt="evadepw/evadeplayer-platform"></a>
+  <a href="https://github.com/mireacrm"><img src="assets/card-mireacrm.svg" width="49%" alt="mireacrm"></a> <a href="https://github.com/leo-need-more-coffee/flipperzero-bomberduck"><img src="assets/card-flipperzero-bomberduck.svg" width="49%" alt="leo-need-more-coffee/flipperzero-bomberduck"></a>
+  <a href="https://github.com/leo-need-more-coffee/element-lazy-android"><img src="assets/card-element-lazy-android.svg" width="49%" alt="leo-need-more-coffee/element-lazy-android"></a> <a href="https://github.com/leo-need-more-coffee/flipperzero-4inrow"><img src="assets/card-flipperzero-4inrow.svg" width="49%" alt="leo-need-more-coffee/flipperzero-4inrow"></a>
 </p>
 
 <p align="center">
   <img src="assets/stats.svg" width="100%" alt="активность за год и счётчики">
 </p>
 
-<sub>экраны собирает <a href="gen/build.py">gen/build.py</a> раз в сутки · шрифты PT Mono, Jura, Rubik Mono One (OFL)</sub>
+<sub>экраны собирает <a href="gen/build.py">gen/build.py</a> раз в сутки · шрифты PT Mono, Jura, Rubik Mono One и зин-набор (OFL)</sub>
