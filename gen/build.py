@@ -501,7 +501,7 @@ def build_header(D):
     boot, t = [], 0.55
     lines = [
         ("{h:LZ-86 VIDEO TERMINAL}{d:   ROM v2.6.1}", None),
-        ("{d:(c) lazy, 1986–2026}", None),
+        ("{d:(c) lazy, 2006–∞}", None),
         ("", None),
         ("MEMORY TEST ......... ", "640 KB {h:OK}"),
         ("H-SCAN .............. ", "15.625 kHz {h:OK}"),
@@ -533,12 +533,12 @@ def build_header(D):
     c.append(anim(s.rect(0, 1, COLS, ROWS - 2, "url(#desk)"), T))
     c.append(s.bar(0, "{k:≡ LZ-86}   {k:F}ile  {k:E}dit  {k:V}iew  {k:C}offee  {k:H}elp", "{k:lazy}@github  P4"))
     c.append(anim(s.bar(ROWS - 1, "{k:F1} Help  {k:F2} Projects  {k:F3} Stats  {k:F10} Exit",
-                        "LZ-86 · P4 · 1986–2026"), T))
+                        "LZ-86 · P4 · 2006–∞"), T))
 
     u = D["user"]
     langs = D["langs"]
     top = max(n for _, n in langs) if langs else 1
-    status = "{h:open to work}" if u.get("hireable") else "busy"
+    status = "{h:employed}"
     wins = [
         (2, 2, 60, 14, "LEO-NEED-MORE-COFFEE", True, []),
         (64, 2, 34, 14, "USER", False, [
